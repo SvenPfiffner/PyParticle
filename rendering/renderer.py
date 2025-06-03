@@ -7,10 +7,12 @@ use_directional_light = True
 
 DIS_LIMIT = 100
 
+MAT_LAMBERTIAN = 1
+MAT_LIGHT = 2
 
 @ti.data_oriented
 class Renderer:
-    def __init__(self, dx, image_res, up, voxel_edges, exposure=3):
+    def __init__(self, image_res, up, exposure=3, max_particles=100):
         self.image_res = image_res
         self.aspect_ratio = image_res[0] / image_res[1]
         self.vignette_strength = 0.9
@@ -21,17 +23,13 @@ class Renderer:
         self.color_buffer = ti.Vector.field(3, dtype=ti.f32)
         self.bbox = ti.Vector.field(3, dtype=ti.f32, shape=2)
         self.fov = ti.field(dtype=ti.f32, shape=())
-        self.voxel_color = ti.Vector.field(3, dtype=ti.u8)
-        self.voxel_material = ti.field(dtype=ti.i8)
+
 
         self.light_direction = ti.Vector.field(3, dtype=ti.f32, shape=())
         self.light_direction_noise = ti.field(dtype=ti.f32, shape=())
         self.light_color = ti.Vector.field(3, dtype=ti.f32, shape=())
 
-        self.cast_voxel_hit = ti.field(ti.i32, shape=())
-        self.cast_voxel_index = ti.Vector.field(3, ti.i32, shape=())
 
-        self.voxel_edges = voxel_edges
         self.exposure = exposure
 
         self.camera_pos = ti.Vector.field(3, dtype=ti.f32, shape=())
@@ -43,17 +41,18 @@ class Renderer:
 
         self.background_color = ti.Vector.field(3, dtype=ti.f32, shape=())
 
-        self.voxel_dx = dx
-        self.voxel_inv_dx = 1 / dx
-        # Note that voxel_inv_dx == voxel_grid_res iff the box has width = 1
-        self.voxel_grid_res = 128
-        voxel_grid_offset = [-self.voxel_grid_res // 2 for _ in range(3)]
-
         ti.root.dense(ti.ij, image_res).place(self.color_buffer)
-        ti.root.dense(ti.ijk,
-                      self.voxel_grid_res).place(self.voxel_color,
-                                                 self.voxel_material,
-                                                 offset=voxel_grid_offset)
+
+        self.max_particles = max_particles
+        self.num_particles = ti.field(dtype=ti.i32, shape=())
+        self.particle_pos = ti.Vector.field(3, dtype=ti.f32)
+        self.particle_color = ti.Vector.field(3, dtype=ti.f32)
+        self.particle_material = ti.field(dtype=ti.i8)
+        self.particle_radius = ti.field(dtype=ti.f32)
+
+        particle_node = ti.root.dense(ti.i, self.max_particles)
+        particle_node.place(self.particle_pos, self.particle_color, self.particle_material, self.particle_radius)
+
 
         self._rendered_image = ti.Vector.field(3, float, image_res)
         self.set_up(*up)
@@ -61,6 +60,22 @@ class Renderer:
 
         self.floor_height[None] = 0
         self.floor_color[None] = (1, 1, 1)
+
+    @ti.kernel
+    def add_particle(self, pos: ti.types.vector(3, ti.f32),
+                     color: ti.types.vector(3, ti.f32),
+                     material: ti.i8,
+                     radius: ti.f32):
+        
+        if self.num_particles[None] < self.max_particles:
+            new_idx = ti.atomic_add(self.num_particles[None], 1)
+            self.particle_pos[new_idx] = pos
+            self.particle_color[new_idx] = color
+            self.particle_material[new_idx] = material
+            self.particle_radius[new_idx] = radius
+        else:
+            print("Max particles reached, cannot add more. Consider increasing max_particles.")
+
 
     def set_directional_light(self, direction, light_direction_noise,
                               light_color):
@@ -72,51 +87,6 @@ class Renderer:
         self.light_direction_noise[None] = light_direction_noise
         self.light_color[None] = light_color
 
-    @ti.func
-    def inside_grid(self, ipos):
-        return ipos.min() >= -self.voxel_grid_res // 2 and ipos.max(
-        ) < self.voxel_grid_res // 2
-
-    @ti.func
-    def query_density(self, ipos):
-        inside = self.inside_grid(ipos)
-        ret = 0.0
-        if inside:
-            ret = self.voxel_material[ipos]
-        else:
-            ret = 0.0
-        return ret
-
-    @ti.func
-    def _to_voxel_index(self, pos):
-        p = pos * self.voxel_inv_dx
-        voxel_index = ti.floor(p).cast(ti.i32)
-        return voxel_index
-
-    @ti.func
-    def voxel_surface_color(self, pos):
-        p = pos * self.voxel_inv_dx
-        p -= ti.floor(p)
-        voxel_index = self._to_voxel_index(pos)
-
-        boundary = self.voxel_edges
-        count = 0
-        for i in ti.static(range(3)):
-            if p[i] < boundary or p[i] > 1 - boundary:
-                count += 1
-
-        f = 0.0
-        if count >= 2:
-            f = 1.0
-
-        voxel_color = ti.Vector([0.0, 0.0, 0.0])
-        is_light = 0
-        if self.inside_particle_grid(voxel_index):
-            voxel_color = self.voxel_color[voxel_index] * (1.0 / 255)
-            if self.voxel_material[voxel_index] == 2:
-                is_light = 1
-
-        return voxel_color * (1.3 - 1.2 * f), is_light
 
     @ti.func
     def ray_march(self, p, d):
@@ -132,73 +102,57 @@ class Renderer:
     @ti.func
     def sdf_color(self, p):
         return self.floor_color[None]
-
+    
     @ti.func
-    def dda_voxel(self, eye_pos, d):
-        for i in ti.static(range(3)):
-            if abs(d[i]) < 1e-6:
-                d[i] = 1e-6
-        rinv = 1.0 / d
-        rsign = ti.Vector([0, 0, 0])
-        for i in ti.static(range(3)):
-            if d[i] > 0:
-                rsign[i] = 1
-            else:
-                rsign[i] = -1
+    def ray_sphere_intersection(self, sphere_pos, sphere_radius, o, d):
+        op = sphere_pos - o
+        b = op.dot(d)
+        det_sq = b * b - op.dot(op) + sphere_radius * sphere_radius
+        intersect = 0
+        t = inf
 
-        bbox_min = self.bbox[0]
-        bbox_max = self.bbox[1]
-        inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos,
-                                                 d)
-        hit_distance = inf
-        hit_light = 0
-        normal = ti.Vector([0.0, 0.0, 0.0])
-        c = ti.Vector([0.0, 0.0, 0.0])
-        voxel_index = ti.Vector([0, 0, 0])
-        if inter:
-            near = max(0, near)
+        if det_sq >= 0:
+            det = ti.sqrt(det_sq)
+            t1 = b - det
+            t2 = b + det
+            if t1 > eps:
+                t = t1
+                intersect = 1
+            elif t2 > eps: # Origin is inside the sphere, t1 is negative or zero
+                pass
 
-            pos = eye_pos + d * (near + 5 * eps)
-
-            o = self.voxel_inv_dx * pos
-            ipos = int(ti.floor(o))
-            dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
-            running = 1
-            i = 0
-            hit_pos = ti.Vector([0.0, 0.0, 0.0])
-            while running:
-                last_sample = int(self.query_density(ipos))
-                if not self.inside_particle_grid(ipos):
-                    running = 0
-
-                if last_sample:
-                    mini = (ipos - o + ti.Vector([0.5, 0.5, 0.5]) -
-                            rsign * 0.5) * rinv
-                    hit_distance = mini.max() * self.voxel_dx + near
-                    hit_pos = eye_pos + (hit_distance + 1e-3) * d
-                    voxel_index = self._to_voxel_index(hit_pos)
-                    c, hit_light = self.voxel_surface_color(hit_pos)
-                    running = 0
-                else:
-                    mm = ti.Vector([0, 0, 0])
-                    if dis[0] <= dis[1] and dis[0] < dis[2]:
-                        mm[0] = 1
-                    elif dis[1] <= dis[0] and dis[1] <= dis[2]:
-                        mm[1] = 1
-                    else:
-                        mm[2] = 1
-                    dis += mm * rsign * rinv
-                    ipos += mm * rsign
-                    normal = -mm * rsign
-                i += 1
-        return hit_distance, normal, c, hit_light, voxel_index
-
+        return intersect, t
+    
     @ti.func
-    def inside_particle_grid(self, ipos):
-        pos = ipos * self.voxel_dx
-        return self.bbox[0][0] <= pos[0] and pos[0] < self.bbox[1][
-            0] and self.bbox[0][1] <= pos[1] and pos[1] < self.bbox[1][
-                1] and self.bbox[0][2] <= pos[2] and pos[2] < self.bbox[1][2]
+    def trace_particles(self, eye_pos, d):
+        closest_t = inf
+        hit_normal_val = ti.Vector([0.0, 0.0, 0.0])
+        hit_color_val = ti.Vector([0.0, 0.0, 0.0])
+        hit_material_val = ti.i8(0)
+        hit_light_flag = 0
+
+        for i in range(self.num_particles[None]):
+            p_pos = self.particle_pos[i]
+            p_radius = self.particle_radius[i]
+
+            is_hit, t = self.ray_sphere_intersection(p_pos, p_radius, eye_pos, d)
+
+            if is_hit and t < closest_t:
+                closest_t = t
+                hit_point = eye_pos + t * d
+                hit_normal_val = (hit_point - p_pos).normalized()
+                hit_color_val = self.particle_color[i]
+                hit_material_val = self.particle_material[i]
+
+        if hit_material_val == MAT_LIGHT:
+            hit_light_flag = 1
+
+        # This dummy_idx is to maintain signature similar to dda_voxel for next_hit if needed,
+        # but particle highlighting would work differently (e.g. with hit_particle_idx)
+        dummy_idx = ti.Vector([0,0,0])
+
+        return closest_t, hit_normal_val, hit_color_val, hit_light_flag, dummy_idx
+
 
     @ti.func
     def next_hit(self, pos, d, t):
@@ -206,22 +160,21 @@ class Renderer:
         normal = ti.Vector([0.0, 0.0, 0.0])
         c = ti.Vector([0.0, 0.0, 0.0])
         hit_light = 0
-        closest, normal, c, hit_light, vx_idx = self.dda_voxel(pos, d)
+        closest_particle, normal_particle, c_particle, hit_light_particle, _ = self.trace_particles(pos, d)
+
+        if closest_particle < closest:
+            closest = closest_particle
+            normal = normal_particle
+            c = c_particle
+            hit_light = hit_light_particle
 
         ray_march_dist = self.ray_march(pos, d)
         if ray_march_dist < DIS_LIMIT and ray_march_dist < closest:
             closest = ray_march_dist
             normal = self.sdf_normal(pos + d * closest)
             c = self.sdf_color(pos + d * closest)
+            hit_light = 0  # Floor is not a light source
 
-        # Highlight the selected voxel
-        if self.cast_voxel_hit[None]:
-            cast_vx_idx = self.cast_voxel_index[None]
-            if all(cast_vx_idx == vx_idx):
-                c = ti.Vector([1.0, 0.65, 0.0])
-                # For light sources, we actually invert the material to make it
-                # more obvious
-                hit_light = 1 - hit_light
         return closest, normal, c, hit_light
 
     @ti.kernel
@@ -334,13 +287,21 @@ class Renderer:
     @ti.kernel
     def recompute_bbox(self):
         for d in ti.static(range(3)):
-            self.bbox[0][d] = 1e9
-            self.bbox[1][d] = -1e9
-        for I in ti.grouped(self.voxel_material):
-            if self.voxel_material[I] != 0:
-                for d in ti.static(range(3)):
-                    ti.atomic_min(self.bbox[0][d], (I[d] - 1) * self.voxel_dx)
-                    ti.atomic_max(self.bbox[1][d], (I[d] + 2) * self.voxel_dx)
+            self.bbox[0][d] = inf
+            self.bbox[1][d] = -inf
+        
+        for i in range(self.num_particles[None]):
+            pos = self.particle_pos[i]
+            radius = self.particle_radius[i]
+            for d_ax in ti.static(range(3)):
+                ti.atomic_min(self.bbox[0][d_ax], pos[d_ax] - radius)
+                ti.atomic_max(self.bbox[1][d_ax], pos[d_ax] + radius)
+        
+        # Ensure bbox is not inf if no particles are present
+        if self.num_particles[None] == 0:
+            for d_ax in ti.static(range(3)):
+                self.bbox[0][d] = 0.0
+                self.bbox[1][d] = 0.0
 
     def reset_framebuffer(self):
         self.current_spp = 0
@@ -370,14 +331,3 @@ class Renderer:
         for i in ti.static(range(3)):
             r[i] = ti.cast(c[i], ti.f32) / 255.0
         return r
-
-    @ti.func
-    def set_voxel(self, idx, mat, color):
-        self.voxel_material[idx] = ti.cast(mat, ti.i8)
-        self.voxel_color[idx] = self.to_vec3u(color)
-
-    @ti.func
-    def get_voxel(self, ijk):
-        mat = self.voxel_material[ijk]
-        color = self.voxel_color[ijk]
-        return mat, self.to_vec3(color)

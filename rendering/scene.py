@@ -4,23 +4,18 @@ from datetime import datetime
 import numpy as np
 import taichi as ti
 from .renderer import Renderer
-from .utils import np_normalize, np_rotate_matrix
 from .camera import Camera
 import __main__
 from taichi.math import *
 
-VOXEL_DX = 1 / 64
-SCREEN_RES = (1280, 720)
+
 UP_DIR = (0, 1, 0)
 
-MAT_LAMBERTIAN = 1
-MAT_LIGHT = 2
 
 @ti.data_oriented
 class Scene:
     def __init__(self, args):
         
-        voxel_edges = 0.06
 
         if args.render_device == 'cpu':
             ti.init(arch=ti.cpu)
@@ -41,33 +36,18 @@ class Scene:
                              camera_pos=camera_pos,
                              lookat_pos=camera_lookat_pos,
                              up_dir=UP_DIR)
-        self.renderer = Renderer(dx=VOXEL_DX,
-                                 image_res=(args.resolution[0], args.resolution[1]),
+        self.renderer = Renderer(image_res=(args.resolution[0], args.resolution[1]),
                                  up=UP_DIR,
-                                 voxel_edges=voxel_edges,
-                                 exposure=args.exposure)
+                                 exposure=args.exposure,
+                                 max_particles=args.max_particles)
 
         self.renderer.set_camera_pos(*self.camera.position)
         if not os.path.exists('screenshot'):
             os.makedirs('screenshot')
 
-    @staticmethod
     @ti.func
-    def round_idx(idx_):
-        idx = ti.cast(idx_, ti.f32)
-        return ti.Vector(
-            [ti.round(idx[0]),
-             ti.round(idx[1]),
-             ti.round(idx[2])]).cast(ti.i32)
-
-    @ti.func
-    def set_voxel(self, idx, mat, color):
-        self.renderer.set_voxel(self.round_idx(idx), mat, color)
-
-    @ti.func
-    def get_voxel(self, idx):
-        mat, color = self.renderer.get_voxel(self.round_idx(idx))
-        return mat, color
+    def add_particle(self, position, material, color, radius):
+        self.renderer.add_particle(position, color, material, radius)
 
     def set_floor(self, height, color):
         self.renderer.floor_height[None] = height
@@ -98,6 +78,7 @@ class Scene:
             t = time.time()
             for _ in range(spp):
                 self.renderer.accumulate()
+
             img = self.renderer.fetch_image()
             if self.window.is_pressed('p'):
                 timestamp = datetime.today().strftime('%Y-%m-%d-%H%M%S')

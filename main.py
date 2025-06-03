@@ -51,6 +51,8 @@ if __name__ == "__main__":
                         help='Initial camera position (x y z).')
     parser.add_argument('--camera_lookat_pos', type=float, nargs=3, default=(0.0, 0.0, 0.0),
                         help='Initial camera look-at position (x y z).')
+    parser.add_argument('--max_particles', type=int, default=500,
+                        help='Maximum number of particles the renderer allows.')
 
     args = parser.parse_args()
 
