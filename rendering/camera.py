@@ -5,10 +5,10 @@ import numpy as np
 
 class Camera:
 
-    def __init__(self, window, up_dir):
+    def __init__(self, window, camera_pos, lookat_pos, up_dir):
         self._window = window
-        self._camera_pos = np.array((0.4, 0.5, 2.0))
-        self._lookat_pos = np.array((0.0, 0.0, 0.0))
+        self._camera_pos = camera_pos
+        self._lookat_pos = lookat_pos
         self._up = np_normalize(np.array(up_dir))
         self._last_mouse_pos = None
 

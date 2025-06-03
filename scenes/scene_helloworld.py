@@ -1,0 +1,22 @@
+import taichi as ti
+from taichi.math import vec3
+
+from rendering.scene import Scene
+
+@ti.data_oriented
+class SceneHelloWorld(Scene):
+
+    def __init__(self, args):
+        super().__init__(args)
+
+        # Set the floor to a light gray color
+        self.set_floor(-0.5, (0.8, 0.8, 0.8))
+
+        # Set a directional light with a white color
+        self.set_directional_light((0, 0, 1), 0.1, (1.0, 1.0, 1.0))
+
+    @ti.kernel
+    def initialize_particles(self):
+        for i in range(10):
+            self.set_voxel(vec3(0, i, 0), 2, vec3(0.9, 0.1, 0.1))
+        self.set_voxel(vec3(0, 10, 0), 1, vec3(0.1, 0.9, 0.1))

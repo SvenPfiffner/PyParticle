@@ -1,29 +1,58 @@
-from rendering.scene import Scene
+import argparse
+import sys
 
-import taichi as ti
-from taichi.math import *
+from utils import convert_arg_line_to_args, load_scene
 
-scene = Scene(exposure=10)
-scene.set_floor(-0.5, (1.0, 1.0, 1.0))
+BOOT_MSG = '''
+====================================================
+Welcome to the PyParticle Renderer!
+====================================================
+Author: Sven Pfiffner
+Source: -
+License: MIT License
 
-@ti.kernel
-def initialize_voxels():
-    n = 50
-    for i, j in ti.ndrange(n, n):
-        if min(i, j) == 0 or max(i, j) == n - 1:
-            scene.set_voxel(vec3(i, 0, j), 2, vec3(0.9, 0.1, 0.1))
-        else:
-            scene.set_voxel(vec3(i, 0, j), 1, vec3(0.9, 0.1, 0.1))
+====================================================
+Controls:
+* Drag with your left mouse button to rotate
+* Press W/A/S/D/Q/E to move
+====================================================
+'''
 
-            if ti.random() < 0.04:
-                height = int(ti.random() * 20)
+def main(args):
 
-                for k in range(1, height):
-                    scene.set_voxel(vec3(i, k, j), 1, vec3(0.0, 0.5, 0.9))
-                if height:
-                    scene.set_voxel(vec3(i, height, j), 2, vec3(1, 1, 1))
+    print(BOOT_MSG)
 
 
-initialize_voxels()
+    Scene = load_scene(args.scene_name)
+    scene = Scene(args)
+    
+    scene.initialize_particles()
+    scene.finish()
 
-scene.finish()
+if __name__ == "__main__":
+
+    # Command line argument parsing
+    parser = argparse.ArgumentParser(description="Run the specified rendering scene.",
+                                     fromfile_prefix_chars='@',
+                                     conflict_handler='resolve')
+    parser.convert_arg_line_to_args = convert_arg_line_to_args
+
+    parser.add_argument('--scene_name', type=str, required=True,
+                        help='Name of the scene to render (e.g., HelloWorld to run SceneHelloWorld).')
+    parser.add_argument('--exposure', type=float, default=10.0,
+                        help='Exposure level for the scene rendering.')
+    parser.add_argument('--resolution', type=int, nargs=2, default=(800, 600),
+                        help='Resolution of the rendering window (width height).')
+    parser.add_argument('--render_device', type=str, default='cpu',
+                        help='Device to use for rendering (cpu or gpu).')
+    parser.add_argument('--target_fps', type=int, default=30,
+                        help='Target frames per second for the rendering loop.')
+    parser.add_argument('--camera_pos', type=float, nargs=3, default=(0.0, 0.0, 1.0),
+                        help='Initial camera position (x y z).')
+    parser.add_argument('--camera_lookat_pos', type=float, nargs=3, default=(0.0, 0.0, 0.0),
+                        help='Initial camera look-at position (x y z).')
+
+    args = parser.parse_args()
+
+    main(args)
+    

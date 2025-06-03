@@ -7,35 +7,45 @@ from .renderer import Renderer
 from .utils import np_normalize, np_rotate_matrix
 from .camera import Camera
 import __main__
+from taichi.math import *
 
 VOXEL_DX = 1 / 64
 SCREEN_RES = (1280, 720)
-TARGET_FPS = 30
 UP_DIR = (0, 1, 0)
-HELP_MSG = '''
-====================================================
-Camera:
-* Drag with your left mouse button to rotate
-* Press W/A/S/D/Q/E to move
-====================================================
-'''
 
 MAT_LAMBERTIAN = 1
 MAT_LIGHT = 2
 
+@ti.data_oriented
 class Scene:
-    def __init__(self, voxel_edges=0.06, exposure=3):
-        ti.init(arch=ti.cpu)
-        print(HELP_MSG)
-        self.window = ti.ui.Window("Taichi Voxel Renderer",
-                                   SCREEN_RES,
+    def __init__(self, args):
+        
+        voxel_edges = 0.06
+
+        if args.render_device == 'cpu':
+            ti.init(arch=ti.cpu)
+        elif args.render_device == 'gpu':
+            ti.init(arch=ti.gpu)
+        else:
+            raise ValueError("Unsupported render device. Use 'cpu' or 'gpu'.")
+        
+        self.target_fps = args.target_fps
+
+        self.window = ti.ui.Window("PyParticle Renderer",
+                                   (args.resolution[0], args.resolution[1]),
                                    vsync=True)
-        self.camera = Camera(self.window, up_dir=UP_DIR)
+        
+        camera_pos = np.array(args.camera_pos, dtype=np.float32)
+        camera_lookat_pos = np.array(args.camera_lookat_pos, dtype=np.float32)
+        self.camera = Camera(self.window,
+                             camera_pos=camera_pos,
+                             lookat_pos=camera_lookat_pos,
+                             up_dir=UP_DIR)
         self.renderer = Renderer(dx=VOXEL_DX,
-                                 image_res=SCREEN_RES,
+                                 image_res=(args.resolution[0], args.resolution[1]),
                                  up=UP_DIR,
                                  voxel_edges=voxel_edges,
-                                 exposure=exposure)
+                                 exposure=args.exposure)
 
         self.renderer.set_camera_pos(*self.camera.position)
         if not os.path.exists('screenshot'):
@@ -98,9 +108,13 @@ class Scene:
                 print(f"Screenshot has been saved to {fname}")
             canvas.set_image(img)
             elapsed_time = time.time() - t
-            if elapsed_time * TARGET_FPS > 1:
-                spp = int(spp / (elapsed_time * TARGET_FPS) - 1)
+            if elapsed_time * self.target_fps > 1:
+                spp = int(spp / (elapsed_time * self.target_fps) - 1)
                 spp = max(spp, 1)
             else:
                 spp += 1
             self.window.show()
+
+    @ti.kernel
+    def initialize_particles(self):
+        raise NotImplementedError("initialize_particles should be implemented by a child class.")
