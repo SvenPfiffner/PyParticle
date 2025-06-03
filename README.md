@@ -1,8 +1,14 @@
+<p align="center" width="100%">
+    <img width="33%" src="https://github.com/SvenPfiffner/PyParticle/blob/main/pyparticle_logo.png">
+</p>
+
+[![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-green.svg)](https://www.python.org/downloads/release/python-360/) [![Python 3.10.17](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.python.org/downloads/release/python-360/)
+
 
 🌠 PyParticle Renderer
 ======================
 
-PyParticle is python based particle simulation framework that allows easy experimentation with particle phyics. Built with Taichi and powered by GPU-accelerated ray tracing, PyParticle is designed for students, educators, researchers, and curious minds who want to explore physical simulations without touching a graphics pipeline.
+PyParticle is python based particle simulation framework that allows easy experimentation with particle physics. Built with Taichi and powered by GPU-accelerated ray tracing, PyParticle is designed for students, educators, researchers, and curious minds who want to explore physical simulations without touching a graphics pipeline.
 
 🎯 You focus on particles. PyParticle handles the pixels.
 
