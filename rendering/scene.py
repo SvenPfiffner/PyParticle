@@ -25,9 +25,11 @@ class Scene:
             raise ValueError("Unsupported render device. Use 'cpu' or 'gpu'.")
         
         self.target_fps = args.target_fps
+        self.resolution = (args.resolution[0], args.resolution[1])
+        self.capture_video = args.capture
 
         self.window = ti.ui.Window("PyParticle Renderer",
-                                   (args.resolution[0], args.resolution[1]),
+                                   self.resolution,
                                    vsync=True)
         
         camera_pos = np.array(args.camera_pos, dtype=np.float32)
@@ -36,14 +38,13 @@ class Scene:
                              camera_pos=camera_pos,
                              lookat_pos=camera_lookat_pos,
                              up_dir=UP_DIR)
-        self.renderer = Renderer(image_res=(args.resolution[0], args.resolution[1]),
+        self.renderer = Renderer(image_res=self.resolution,
                                  up=UP_DIR,
                                  exposure=args.exposure,
                                  max_particles=args.max_particles)
 
         self.renderer.set_camera_pos(*self.camera.position)
-        if not os.path.exists('screenshot'):
-            os.makedirs('screenshot')
+
 
     @ti.func
     def add_particle(self, position, material, color, radius, velocity=vec3(0.0, 0.0, 0.0)):
@@ -64,6 +65,14 @@ class Scene:
         canvas = self.window.get_canvas()
         spp = 1
 
+        if self.capture_video:
+            video_manager = ti.tools.VideoManager(
+                output_dir='video',
+                width=self.resolution[0],
+                height=self.resolution[1],
+                framerate=self.target_fps,
+                automatic_build=False
+            )
 
         while self.window.running:
             
@@ -90,6 +99,10 @@ class Scene:
                 self.renderer.accumulate()
 
             img = self.renderer.fetch_image()
+
+            if self.capture_video:
+                video_manager.write_frame(img)
+
             if self.window.is_pressed('p'):
                 timestamp = datetime.today().strftime('%Y-%m-%d-%H%M%S')
                 dirpath = os.getcwd()
@@ -105,6 +118,10 @@ class Scene:
             else:
                 spp += 1
             self.window.show()
+
+        if self.capture_video:
+            video_manager.make_video(gif=True, mp4=True)
+            print(f"Video has been saved")
 
     @ti.kernel
     def initialize_particles(self):

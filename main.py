@@ -1,7 +1,9 @@
 import argparse
 import sys
+import os
 
 from utils import convert_arg_line_to_args, load_scene
+import shutil
 
 BOOT_MSG = '''
 ====================================================
@@ -23,12 +25,22 @@ def main(args):
 
     print(BOOT_MSG)
 
+    if not os.path.exists('screenshot'):
+        os.makedirs('screenshot')
+
+    if args.capture and not os.path.exists('video'):
+        os.makedirs('video')
 
     Scene = load_scene(args.scene_name)
     scene = Scene(args)
     
     scene.initialize_particles()
     scene.finish()
+
+    if args.capture:
+        # Clean up video/frames
+        if os.path.exists('video/frames'):
+            shutil.rmtree('video/frames')
 
 if __name__ == "__main__":
 
@@ -54,6 +66,8 @@ if __name__ == "__main__":
                         help='Initial camera look-at position (x y z).')
     parser.add_argument('--max_particles', type=int, default=500,
                         help='Maximum number of particles the renderer allows.')
+    parser.add_argument('--capture', type=bool, default=False,
+                        help='Whether to capture a video of the rendering session.')
 
     args = parser.parse_args()
 

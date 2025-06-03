@@ -5,4 +5,5 @@
 --target_fps 60
 --camera_pos 0 0 3
 --camera_lookat_pos 0 0 0
---max_particles 500
+--max_particles 1000
+--capture true

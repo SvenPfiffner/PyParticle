@@ -1,6 +1,6 @@
 import taichi as ti
 
-from .utils import (eps, inf, out_dir, ray_aabb_intersection)
+from .renderutils import (eps, inf, out_dir, ray_aabb_intersection)
 
 MAX_RAY_DEPTH = 4
 use_directional_light = True

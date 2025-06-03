@@ -1,4 +1,4 @@
-from .utils import np_normalize, np_rotate_matrix
+from .renderutils import np_normalize, np_rotate_matrix
 
 import taichi as ti
 import numpy as np
