@@ -78,7 +78,7 @@ class Scene:
                 should_reset_framebuffer = True
 
             if self.renderer.num_particles[None] > 0:
-                self.renderer.update_particles(dt)
+                self.update_particles(dt)
                 self.renderer.recompute_bbox()
                 should_reset_framebuffer = True
 
@@ -108,4 +108,16 @@ class Scene:
 
     @ti.kernel
     def initialize_particles(self):
+        """
+        Initialize the particles in the scene.
+        This method should be implemented by child classes to define how particles are initialized.
+        """
         raise NotImplementedError("initialize_particles should be implemented by a child class.")
+    
+    @ti.kernel
+    def update_particles(self, dt: ti.f32):
+        """
+        Update the particles in the scene.
+        This method should be implemented by child classes to define how particles are updated.
+        """
+        raise NotImplementedError("update_particles should be implemented by a child class.")

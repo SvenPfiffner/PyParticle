@@ -83,20 +83,6 @@ class Renderer:
         else:
             print("Max particles reached, cannot add more. Consider increasing max_particles.")
 
-    @ti.kernel
-    def update_particles(self, dt: ti.f32):
-        for i in range(self.num_particles[None]):
-            self.particle_pos[i] += self.particle_velocity[i] * dt
-
-            self.particle_velocity[i][1] -= 9.81 * dt  # Gravity effect
-
-            # Simple collision with the floor
-            if self.particle_pos[i][1] < self.particle_radius[i] and self.particle_velocity[i][1] < -0.2:
-                self.particle_velocity[i][1] *= -0.5
-
-            #Change color over time (e.g., fade red component)
-            self.particle_color[i][0] = ti.max(0.0, self.particle_color[i][0] - 0.1 * dt)
-
 
     def set_directional_light(self, direction, light_direction_noise,
                               light_color):

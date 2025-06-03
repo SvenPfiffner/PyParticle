@@ -3,6 +3,6 @@
 --resolution 800 600
 --render_device gpu
 --target_fps 60
---camera_pos 0 0 1
+--camera_pos 0 0 3
 --camera_lookat_pos 0 0 0
 --max_particles 500
