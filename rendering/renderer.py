@@ -61,7 +61,7 @@ class Renderer:
         self.floor_height[None] = 0
         self.floor_color[None] = (1, 1, 1)
 
-    @ti.kernel
+    @ti.func
     def add_particle(self, pos: ti.types.vector(3, ti.f32),
                      color: ti.types.vector(3, ti.f32),
                      material: ti.i8,
@@ -300,8 +300,8 @@ class Renderer:
         # Ensure bbox is not inf if no particles are present
         if self.num_particles[None] == 0:
             for d_ax in ti.static(range(3)):
-                self.bbox[0][d] = 0.0
-                self.bbox[1][d] = 0.0
+                self.bbox[0][d_ax] = 0.0
+                self.bbox[1][d_ax] = 0.0
 
     def reset_framebuffer(self):
         self.current_spp = 0

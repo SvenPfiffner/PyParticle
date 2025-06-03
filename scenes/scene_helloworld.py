@@ -17,5 +17,5 @@ class SceneHelloWorld(Scene):
 
     @ti.kernel
     def initialize_particles(self):
-        # Create a single particle at the origin with a radius of 0.05
-        self.add_particle(vec3(0.0, 0.0, 0.0), 1, (1.0, 0.0, 0.0), 0.2)
+        # Create a single particle at the origin
+        self.add_particle(vec3(0.0, 0.0, 0.0), 1, vec3(1.0, 0.0, 0.0), 0.05)
