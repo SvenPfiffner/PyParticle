@@ -46,8 +46,8 @@ class Scene:
             os.makedirs('screenshot')
 
     @ti.func
-    def add_particle(self, position, material, color, radius):
-        self.renderer.add_particle(position, color, material, radius)
+    def add_particle(self, position, material, color, radius, velocity=vec3(0.0, 0.0, 0.0)):
+        self.renderer.add_particle(position, color, material, radius, velocity)
 
     def set_floor(self, height, color):
         self.renderer.floor_height[None] = height
@@ -63,13 +63,23 @@ class Scene:
         self.renderer.recompute_bbox()
         canvas = self.window.get_canvas()
         spp = 1
+
+
         while self.window.running:
+            
+            dt = 1.0 / self.target_fps
+
             should_reset_framebuffer = False
 
             if self.camera.update_camera():
                 self.renderer.set_camera_pos(*self.camera.position)
                 look_at = self.camera.look_at
                 self.renderer.set_look_at(*look_at)
+                should_reset_framebuffer = True
+
+            if self.renderer.num_particles[None] > 0:
+                self.renderer.update_particles(dt)
+                self.renderer.recompute_bbox()
                 should_reset_framebuffer = True
 
             if should_reset_framebuffer:

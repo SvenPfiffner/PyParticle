@@ -15,6 +15,7 @@ License: MIT License
 Controls:
 * Drag with your left mouse button to rotate
 * Press W/A/S/D/Q/E to move
+* Press P to save a screenshot of the current view
 ====================================================
 '''
 
