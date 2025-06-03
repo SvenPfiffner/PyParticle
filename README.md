@@ -1,5 +1,5 @@
 <p align="center" width="100%">
-    <img width="33%" src="https://github.com/SvenPfiffner/PyParticle/blob/main/pyparticle_logo.png">
+    <img width="66%" src="https://github.com/SvenPfiffner/PyParticle/blob/main/pyparticle_logo.png">
 </p>
 
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-green.svg)](https://www.python.org/downloads/release/python-360/) [![Python 3.10.17](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.python.org/downloads/release/python-360/)
