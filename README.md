@@ -1,16 +1,16 @@
 <p align="center" width="100%">
-    <img width="50%" src="https://github.com/SvenPfiffner/PyParticle/blob/main/pyparticle_logo.png">
+    <img width="50%" src="https://github.com/SvenPfiffner/PyParticle/blob/main/assets/pyparticle_logo.png">
 </p>
 
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-green.svg)](https://www.python.org/downloads/release/python-360/) [![Python 3.10.17](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
 
-ℹ️**Notice: This repository is in pre-alpha and in active development. The main functionality is usable but expect errors, bugs or unexpected behavior**
+ℹ️**Notice: This repository is in pre-alpha and in active development. The main functionality is usable but expect errors, bugs or unexpected behavior.**
 
 🌠 PyParticle Renderer
 ======================
 
-PyParticle is python based particle simulation framework that allows easy experimentation with particle physics. Built with Taichi and powered by GPU-accelerated ray tracing, PyParticle is designed for students, educators, researchers, and curious minds who want to explore physical simulations without touching a graphics pipeline.
+PyParticle is a python based particle simulation framework that allows easy experimentation with particle physics. Built with Taichi and powered by GPU-accelerated ray tracing, PyParticle is designed for students, educators, researchers, and curious minds who want to explore physical simulations without touching a graphics pipeline.
 
 🎯 You focus on particles. PyParticle handles the pixels.
 
@@ -19,7 +19,7 @@ What is PyParticle?
 
 PyParticle is an educational rendering framework that:
 - 💡 Renders particle-based simulations in real-time using path tracing
-- 🎮 Lets you explore scenes interactively (mouse + WASD camera)
+- 🎮 Lets you explore scenes interactively (mouse + WASD controlled camera)
 - 🧪 Allows you to create custom simulations just by overwriting particle initialization and update logic
 - 🎥 Captures screenshots and videos at the press of a button
 
@@ -31,7 +31,7 @@ Features
 - 🖱️ Interactive camera (mouse + keyboard)
 - 💡 Directional lighting, floor plane, and material shading
 - 📷 Screenshot + video capture
-- 🎓 Clean architecture ideal for teaching or experimentation
+- 🎓 Clean architecture - ideal for teaching or experimentation
 
 Getting Started
 ---------------
