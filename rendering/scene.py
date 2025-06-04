@@ -103,6 +103,11 @@ class Scene:
             if self.capture_video:
                 video_manager.write_frame(img)
 
+            if self.window.is_pressed('c'):
+                camera_pos = self.camera.position
+                look_at = self.camera.look_at
+                print(f"Camera Position: {camera_pos}, Look At: {look_at}")
+
             if self.window.is_pressed('p'):
                 timestamp = datetime.today().strftime('%Y-%m-%d-%H%M%S')
                 dirpath = os.getcwd()
