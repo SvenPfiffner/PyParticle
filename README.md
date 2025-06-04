@@ -23,10 +23,6 @@ PyParticle is an educational rendering framework that:
 - 🧪 Allows you to create custom simulations just by overwriting particle initialization and update logic
 - 🎥 Captures screenshots and videos at the press of a button
 
-All you need to do is subclass the Scene class and define:
-- How your particles should be initialized
-- How their properties should change with time
-
 Features
 --------
 
@@ -73,38 +69,37 @@ Then run it with:
 
     python main.py --scene_name YourIdea
 
-Controls
---------
+🛣️ Roadmap
+-------
 
-| Action           | Key/Mouse        |
-|------------------|------------------|
-| Rotate camera    | Left mouse drag  |
-| Move camera      | W / A / S / D / Q / E |
-| Save screenshot  | P                |
-
-Folder Structure
-----------------
-
-    ├── main.py              # Entry point
-    ├── renderer.py          # Rendering engine (ray tracer)
-    ├── camera.py            # Interactive camera logic
-    ├── scene.py             # Abstract Scene class
-    ├── scene_helloworld.py  # Sample implementation
-    ├── renderutils.py       # Math & ray helpers
-    └── utils/               # Utility functions
-
-Why PyParticle?
----------------
-
-- No need to write rendering code
-- Learn by doing — focus on physics, not pixels
-- Make your first graphics project without OpenGL/Vulkan headaches
-- Ideal for computer graphics or simulation coursework
+- [x] Raytraced rendering of spherical particles 
+- [x] Modular system to overwrite particle behavior and initialization  
+- [x] Simulation on GPU, CUDA, Vulkan  
+- [ ] Improve particle API  
+  - [ ] Define volumes filled with particles for initialization
+  - [ ] Support multiple particle types per scene
+  - [ ] Allow other particle shapes  
+  - [ ] API to add static colliders to scene
+  - [ ] Provide acceleration data structures for particle neighbor search
+- [ ] Improve Rendering
+    - [ ] Add more materials (Parameterizable for diffusion, scattering etc.)
+    - [ ] Improve efficiency
+    - [ ] Mitigate video capture overhead
+    - [ ] Support for headless rendering
+    - [ ] Add variable render quality options
+- [ ] Testing & QA  
+  - [ ] Unit tests  
+  - [ ] CI Setup  
+- [ ] Documentation  
+  - [ ] API Reference  
+  - [ ] Setup Guide  
+- [ ] Deployment    
+  - [ ] Deploy to PyPi
 
 License
 -------
 
-MIT License — free for education, experimentation, and even mischief.
+Free and licenced under the MIT License
 
 Acknowledgments
 ---------------
