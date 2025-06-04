@@ -5,6 +5,8 @@
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-green.svg)](https://www.python.org/downloads/release/python-360/) [![Python 3.10.17](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
 
+ℹ️**Notice: This repository is in pre-alpha and in active development. The main functionality is usable but expect errors, bugs or unexpected behavior**
+
 🌠 PyParticle Renderer
 ======================
 
